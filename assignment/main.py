@@ -1,7 +1,10 @@
-from pickle import FALSE
 import pygame
 import random
 import button
+from tkinter import messagebox
+import tkinter as tk
+root = tk.Tk()
+root.withdraw()
 
 """
 10 x 20 square grid
@@ -266,15 +269,6 @@ def draw_next_shape(shape, surface):
     
     surface.blit(label, (sx, sy - 40))
 
-# def max_score():
-#     max_score = 0
-#     with open('scores.txt', 'r') as f:
-#         lines = f.readlines()
-#         for line in lines:
-#             score = lines[0].strip()
-#             if int(score) > max_score
-
-#     return score
 
 def update_score(nscore):
     with open('scores.txt', 'r') as f:
@@ -404,7 +398,15 @@ def main(win):
                 if event.key == pygame.K_p:
                     game_paused = not game_paused
                 if event.key == pygame.K_ESCAPE:
-                    yes_or_no(win)
+                    game_paused = not game_paused
+                    draw_text_middle("Paused", 120, (255,255,255), win)
+                    pygame.display.update()
+                    response = messagebox.askyesno("Confirmation", "U sure you wanna quit?")
+                    if response == True:
+                        run = False
+                        pygame.display.quit()
+                    if response == False:
+                        game_paused = not game_paused
 
         shape_pos = convert_shape_format(current_piece)
 
