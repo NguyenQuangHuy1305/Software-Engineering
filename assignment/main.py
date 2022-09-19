@@ -1,10 +1,14 @@
 import pygame
 import random
+
+# import button.py
 import button
+
+# import tkinter to display popup dialog box
 from tkinter import messagebox
 import tkinter as tk
 root = tk.Tk()
-root.withdraw()
+root.withdraw() # to remove the tk root window
 
 """
 10 x 20 square grid
@@ -15,13 +19,12 @@ represented in order by 0 - 6
 pygame.font.init()
 
 # GLOBALS VARS
-s_width = 1200
-s_height = 700
+s_width = 1200 # width of game window
+s_height = 700 # height of game window
 play_width = 300  # meaning 300 // 10 = 30 width per block
 play_height = 600  # meaning 600 // 20 = 20 height per block
-block_size = 30
+block_size = 30 # each block has size of 30
 click = False
-game_paused = False
 
 top_left_x = (s_width - play_width) // 2
 top_left_y = s_height - play_height
@@ -30,7 +33,7 @@ top_left_y = s_height - play_height
 win = pygame.display.set_mode((s_width, s_height))
 pygame.display.set_caption('Tetris')
 
-# LOAD IMAGES
+# LOAD BUTTON IMAGES
 start_img = pygame.image.load('images/start.png').convert_alpha()
 configure_img = pygame.image.load('images/configure.png').convert_alpha()
 highscore_img = pygame.image.load('images/highscore.png').convert_alpha()
@@ -40,7 +43,7 @@ resume_img = pygame.image.load('images/resume.png').convert_alpha()
 yes_img = pygame.image.load('images/yes.png').convert_alpha()
 no_img = pygame.image.load('images/no.png').convert_alpha()
 
-# CREATE BUTTON
+# CREATE BUTTONS
 start_button = button.Button(s_width/2 - start_img.get_width()/2 -4, s_height/2 - start_img.get_height()/2 -50, start_img, 1)
 configure_button = button.Button(s_width/2 - configure_img.get_width()/2, s_height/2 - configure_img.get_height()/2, configure_img, 1)
 highscore_button = button.Button(s_width/2 - highscore_img.get_width()/2, s_height/2 - highscore_img.get_height()/2 +50, highscore_img, 1)
@@ -157,7 +160,7 @@ shapes = [S, Z, I, O, J, L, T]
 shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128)]
 # index 0 - 6 represent shape
 
-
+# create the class for tetris pieces
 class Piece(object):
     def __init__(self, x, y, shape):
         self.x = x
@@ -166,15 +169,16 @@ class Piece(object):
         self.color = shape_colors[shapes.index(shape)]
         self.rotation = 0
 
+# function to create the grid (gived locked position as a library)
 def create_grid(locked_positions = {}):
-    grid = [[(0,0,0) for _ in range(10)] for _ in range(20)]
+    grid = [[(0,0,0) for _ in range(10)] for _ in range(20)] # for starter, all grid "elements" are black squares
 
     for i in range(len(grid)):
         for j in range(len(grid[i])):
             if (j, i) in locked_positions:
                 c = locked_positions[(j,i)]
                 grid[i][j] = c
-    
+
     return grid
 
 def convert_shape_format(shape):
