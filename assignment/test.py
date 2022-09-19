@@ -1,3 +1,3 @@
 import main
 
-main.update_score(10000)
+print(main.len(grid))

@@ -12,7 +12,6 @@ shapes: S, Z, I, O, J, L, T
 represented in order by 0 - 6
 """
 
-
 pygame.font.init()
 
 # GLOBALS VARS
@@ -337,7 +336,7 @@ def draw_window(surface, grid, score=0, inc=0, level=1):
 def main(win):
     locked_positions = {}
     grid = create_grid(locked_positions)
-
+    print(grid)
     game_paused = False
     
     change_piece = False
@@ -448,25 +447,25 @@ def main(win):
             update_score(score)
             run = False
 
-def yes_or_no(win):
-    run = True
-    while run:
-        win.fill((0,0,0))
-        draw_text_middle("You sure you want to quit?", 60, (255,255,255), win)
+# def yes_or_no(win):
+#     run = True
+#     while run:
+#         win.fill((0,0,0))
+#         draw_text_middle("You sure you want to quit?", 60, (255,255,255), win)
 
-        if yes_button.draw(win):
-            run = False
-            pygame.display.quit()
-        if no_button.draw(win):
-            main(win)
+#         if yes_button.draw(win):
+#             run = False
+#             pygame.display.quit()
+#         if no_button.draw(win):
+#             main(win)
 
-        # event handler
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-                pygame.display.quit()
+#         # event handler
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                 run = False
+#                 pygame.display.quit()
         
-        pygame.display.update()
+#         pygame.display.update()
 
 def main_menu(win):
     run = True
