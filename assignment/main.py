@@ -29,7 +29,7 @@ click = False
 top_left_x = (s_width - play_width) // 2
 top_left_y = s_height - play_height
 
-
+# the main pygame window
 win = pygame.display.set_mode((s_width, s_height))
 pygame.display.set_caption('Tetris')
 
@@ -169,13 +169,18 @@ class Piece(object):
         self.color = shape_colors[shapes.index(shape)]
         self.rotation = 0
 
-# function to create the grid (gived locked position as a library)
+# function to create the grid (given locked position as a dict)
 def create_grid(locked_positions = {}):
-    grid = [[(0,0,0) for _ in range(10)] for _ in range(20)] # for starter, all grid "elements" are black squares
+    """
+    Takes a dict of locked positions and return a drawn grid
+    The dict locked_positions is a dict, key is the location of the cell, value is the colour, ex: {(1,1):(0,0,0), (1,2):...}
+    """
+    grid = [[(0,0,0) for _ in range(10)] for _ in range(20)] # for starter, all grid "elements" are black squares (grid is a list)
 
-    for i in range(len(grid)):
-        for j in range(len(grid[i])):
-            if (j, i) in locked_positions:
+    for i in range(len(grid)): # loop through all rows, len(grid) == 20
+        for j in range(len(grid[i])): # loop through all column of that row, len(grid[i]) == 10
+            if (j, i) in locked_positions: # (x,y) aka (j,i) because j is x value (row) and i is y value (column)
+                # loop through the grid, if any positions (ex: (1,1)) is in locked_positions, then get the value (colour) of that position from the locked_positions, and overwrite the current grid's element with that value (colour)
                 c = locked_positions[(j,i)]
                 grid[i][j] = c
 
@@ -197,6 +202,9 @@ def convert_shape_format(shape):
     return positions
 
 def valid_space(shape, grid):
+    """
+    function to find out if
+    """
     accepted_pos = [[(j,i) for j in range(10) if grid[i][j] == (0,0,0)] for i in range(20)]
     accepted_pos = [j for sub in accepted_pos for j in sub]
 
@@ -216,22 +224,33 @@ def check_lost(positions):
     return False
 
 def get_shape():
+    """
+    function to get a random Piece (shape)
+    """
     return Piece(5, 0, random.choice(shapes))
 
 
 def draw_text_middle(text, size, color, surface):
+    """
+    simple function to draw text in the middle of the screen
+    """
     font = pygame.font.SysFont('comicsans', size, bold=True)
     label = font.render(text, 1, color)
 
     surface.blit(label, (top_left_x + play_width/2 - (label.get_width()/2), top_left_y + 80 - label.get_height()/2))
 
 def draw_grid(surface, grid):
+    """
+    function to draw the grid lines, given the actual grid (a list of colours) and the surface to draw the grid on
+    """
     sx = top_left_x
     sy = top_left_y
 
     for i in range(len(grid)):
+        # for each row, draw a line(surface = where to draw, (128,128,128) = draw in what colour, (sx, sy + i*block_size) = start drawing at which location, (sx + play_width, sy + i*block_size) = stop drawing at which location)
         pygame.draw.line(surface, (128,128,128), (sx, sy + i*block_size), (sx + play_width, sy + i*block_size))
         for j in range(len(grid[i])):
+            # similar to the above note, but for each columns
             pygame.draw.line(surface, (128,128,128), (sx + j*block_size, sy), (sx + j*block_size, sy + play_height))
 
 def clear_rows(grid, locked):
@@ -285,6 +304,11 @@ def update_score(nscore):
             f.write(str(score))
 
 def draw_window(surface, grid, score=0, inc=0, level=1):
+    """
+    function to draw the game window, given the grid (a list of colours) and the surface to draw the grid on, along with some other stats (score, level,...)
+    """
+
+    # fill the window with black
     surface.fill((0,0,0))
 
     pygame.font.init()
@@ -338,18 +362,21 @@ def draw_window(surface, grid, score=0, inc=0, level=1):
     draw_grid(surface, grid)
 
 def main(win):
-    locked_positions = {}
-    grid = create_grid(locked_positions)
+    """
+    main func to run the game
+    """
+    locked_positions = {} # initiate the locked_position dict
+    grid = create_grid(locked_positions) # call create_grid fuction with given (blank) locked_positions dict
     print(grid)
-    game_paused = False
+    game_paused = False # pretty much self-explanatory
     
     change_piece = False
-    run = True
-    current_piece = get_shape()
-    next_piece = get_shape()
+    run = True # while  True -> while run so that we can flip this bool var later
+    current_piece = get_shape() # get a random current piece
+    next_piece = get_shape() # get a random next piece
     clock = pygame.time.Clock()
     fall_time = 0
-    fall_speed = 0.25
+    fall_speed = 0.25 # how long it take for a piece to move 1 row down
     level_time = 0
     score = 0
     inc = 0
@@ -381,25 +408,36 @@ def main(win):
                 run = False
                 pygame.display.quit()
             
+            # in the event the user press a key
             if event.type == pygame.KEYDOWN:
+                # in the event the user press left key -> move piece to the left aka current_piece.x -= 1
                 if event.key == pygame.K_LEFT:
                     current_piece.x -= 1
+                    # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.x += 1
+                # in the event the user press right key -> move piece to the right aka current_piece.x += 1
                 if event.key == pygame.K_RIGHT:
                     current_piece.x += 1
+                    # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.x -= 1
+                # in the event the user press down key -> move piece down aka current_piece.y += 1
                 if event.key == pygame.K_DOWN:
                     current_piece.y += 1
+                    # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.y -= 1
+                # in the event the user press up key -> rotate the piece
                 if event.key == pygame.K_UP:
                     current_piece.rotation += 1
+                    # if the new place of the piece is not a valid space, then just undo the previous rotation
                     if not(valid_space(current_piece, grid)):
                         current_piece.rotation -= 1
+                # in the event the user press P key -> stop time increment
                 if event.key == pygame.K_p:
                     game_paused = not game_paused
+                # in the event the user press esc key
                 if event.key == pygame.K_ESCAPE:
                     game_paused = not game_paused
                     draw_text_middle("Paused", 120, (255,255,255), win)
