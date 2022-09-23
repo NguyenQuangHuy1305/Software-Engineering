@@ -165,7 +165,7 @@ class Piece(object):
     def __init__(self, x, y, shape):
         self.x = x
         self.y = y
-        self.shape = shape
+        self.shape = shape # shape here is a list of lists, for example: list of lists named "O" in line 90
         self.color = shape_colors[shapes.index(shape)]
         self.rotation = 0
 
@@ -187,36 +187,58 @@ def create_grid(locked_positions = {}):
     return grid
 
 def convert_shape_format(shape):
+    """
+    function to convert from a passed-in shape object to an actual shape
+    """
     positions = []
+    # shape.shape is a list of lists like this: [[],[]], which is either one of these lists: S, Z, I, O, J, L, T
+    # shape.rotation % len(shape.shape) is the index (example: 1, 2, 3, or 4, depend on the current rotation "count", 0%4=0, 1%4=1, 2%4=2, 3%4=3, 4%4=0,...)
     format = shape.shape[shape.rotation % len(shape.shape)]
 
+    # loop through the list called format which we got above
     for i, line in enumerate(format):
         row = list(line)
+        # turn line into a list called row, then loop through it
         for j, column in enumerate(row):
             if column == '0':
+                # if a 0 is found, add that position to the list positions
                 positions.append((shape.x + j, shape.y + i))
 
+    # need to modify the positions list, basically moving the shape left 2 and up 4
     for i, pos in enumerate(positions):
         positions[i] = (pos[0] - 2, pos[1] - 4)
 
+    # return a list of positions, positions of all the blocks that create a shape
     return positions
 
 def valid_space(shape, grid):
     """
-    function to find out if
+    function to check the grid if we're moving the shape into an accepted pos
     """
+    # loop through all the possible positions, only add in accepted_pos if the colour is black (0,0,0)
+    # accepted_pos is a list of sublists: [ [(1,1)], [(2,2)] ]
     accepted_pos = [[(j,i) for j in range(10) if grid[i][j] == (0,0,0)] for i in range(20)]
+    # this line convert the list of sublists into a list of tuples: [ (1,1), (2,2) ]
     accepted_pos = [j for sub in accepted_pos for j in sub]
 
+    # convert the passed-in shape into the same format as accepted_pos for comparison [ (1,1), (2,2) ], this is a list of blocks that create the shape
     formatted = convert_shape_format(shape)
 
+    # loop through all the blocks (pos) of the shape (formatted)
     for pos in formatted:
+        # if any of the blocks (pos) of the shape is not in accepted_pos
         if pos not in accepted_pos:
+            # if the x value (current horizontal pos) of the 1st block (left most block) of  shape is > -1, aka the shape is in the play area
             if pos[1] > -1:
+                # then return false, aka the shape is in valid space
                 return False
     return True
 
 def check_lost(positions):
+    """
+    func to check if the player is lost or not, required a parameter locked_positions
+    basically check if any of the locked positions has y < 1  (aka the highest locked positions has touched the ceiling), then return True (lost), if not, return False
+    """
     for pos in positions:
         x, y = pos
         if y < 1:
@@ -254,6 +276,9 @@ def draw_grid(surface, grid):
             pygame.draw.line(surface, (128,128,128), (sx + j*block_size, sy), (sx + j*block_size, sy + play_height))
 
 def clear_rows(grid, locked):
+    """
+    function to clear row from the bottom up, require a grid and locked_positions as parameter
+    """
     inc = 0 # to count how many row do we need to move "the above rows" down
     for i in range(len(grid)-1, -1,  -1):
         row = grid[i]
@@ -276,6 +301,9 @@ def clear_rows(grid, locked):
     return inc
 
 def draw_next_shape(shape, surface):
+    """
+    func to draw the next shape to the right of the play area
+    """
     font = pygame.font.SysFont('comicsans', 30)
     label = font.render('Next Shape', 1, (255,255,255))
     
@@ -293,6 +321,9 @@ def draw_next_shape(shape, surface):
 
 
 def update_score(nscore):
+    """
+    func to update the scores.txt file with the 10 highest scores
+    """
     with open('scores.txt', 'r') as f:
         scores = f.readlines()
         scores.append(str(nscore) + "\n")
@@ -370,7 +401,7 @@ def main(win):
     print(grid)
     game_paused = False # pretty much self-explanatory
     
-    change_piece = False
+    change_piece = False # default is false, will be changed whenever a shape hit a locked_position
     run = True # while  True -> while run so that we can flip this bool var later
     current_piece = get_shape() # get a random current piece
     next_piece = get_shape() # get a random next piece
@@ -383,22 +414,27 @@ def main(win):
     level = 1
 
     while run:
+        # create the grid based on locked_positions
         grid = create_grid(locked_positions)
         
+        # while game_paused == False, increment time as usual, of not, time stops
         if game_paused == False:
             fall_time += clock.get_rawtime() # gradually increase fall_time
             level_time += clock.get_rawtime() # gradually increase level_time
             clock.tick()
 
+        # if level_time reach 5 (secs), increase level by 1
         if level_time/1000 > 5:
             level_time = 0
             level += 1
             if fall_speed > 0.12: # min speed is going to be 0.12
                 fall_speed -= 0.005 # took 1m40s before hitting fall_speed = 0.12
 
+        # if fall_time (auto increase) > fall speed, the move the piece down 1 row
         if fall_time/1000 > fall_speed:
             fall_time = 0
             current_piece.y += 1
+            # if the (just moved down 1 row) piece hit an invalid space, then move the piece back up 1 row, and change_piece 
             if not(valid_space(current_piece, grid)) and current_piece.y > 0:
                 current_piece.y -= 1
                 change_piece = True
@@ -451,18 +487,22 @@ def main(win):
 
         shape_pos = convert_shape_format(current_piece)
 
+        # loop through all the pos of the blocks of the shapes, if it's in the play area, change the color accordingly
         for i in range(len(shape_pos)):
             x, y = shape_pos[i]
-            if y > -1:
+            if y > -1: # we're not above the play area
                 grid[y][x] = current_piece.color
 
+        # in the event change_piece was changed to true:
         if change_piece:
+            # update locked_positions, locked_positions is a dict like this: {(1,2), (255,255,255)}, whereas the key is the location, value is the color
             for pos in shape_pos:
                 p = (pos[0], pos[1])
                 locked_positions[p] = current_piece.color
-            current_piece = next_piece
-            next_piece = get_shape()
-            change_piece = False
+            current_piece = next_piece # replace the current piece with next piece
+            next_piece = get_shape() # initiate the new piece
+            change_piece = False # turn the var back to False
+
             # only clear_rows when the previous piece hits the ground (when change_piece)
             if clear_rows(grid, locked_positions) == 1:
                 score += 100
@@ -510,6 +550,9 @@ def main(win):
 #         pygame.display.update()
 
 def main_menu(win):
+    """
+    the main menu with some options and information
+    """
     run = True
     while run:
         win.fill((0,0,0))
@@ -548,6 +591,9 @@ def main_menu(win):
         pygame.display.update()
 
 def configure_menu(win):
+    """
+    The configure menu, for now it's only hard coded string being displayed
+    """
     run = True
     while run:
         win.fill((0,0,0))
@@ -596,7 +642,9 @@ def configure_menu(win):
         pygame.display.update()
 
 def highscore_menu(win):
-
+    """
+    the appearance of high score menu, basically open the scores.txt file and write whatever's in there to the screen
+    """
     with open('scores.txt', 'r') as f:
         scores = f.readlines()
 
