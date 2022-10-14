@@ -470,7 +470,7 @@ def main(win):
     inc = 0
     level = 1
 
-    AI = True
+    AI = False
 
     while run:
         # create the grid based on locked_positions
@@ -606,36 +606,61 @@ def main(win):
         # in case of losing
         if check_lost(locked_positions):
             if AI == False:
+                # by default, we will not update user's score
+                record_new_player_score = False
+
                 draw_text_middle('You lost', 80, (255,255,255), win)
                 pygame.display.update()
 
-                root.title("Submit highscore")
-                root.iconbitmap('icon.ico')
+                # connect to database
+                conn = sqlite3.connect('highscore.db')
+                # create a cusor
+                c = conn.cursor()
 
-                e = Entry(root, width=50)
-                e.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
+                # get a list of tuples, tuple[0] = name, tuple[1] = score, order by score
+                c.execute("SELECT * from Player ORDER BY score DESC LIMIT 10")
+                players = c.fetchall()
 
-                def submit(name):
-                    print(f'Updateing score for: {name}')
-                    update_score(score, name)
-                    main_menu(win)
+                for player in players:
+                    if player[1] < score:
+                        record_new_player_score = True
+                    else:
+                        record_new_player_score = False
 
-                def restart():
-                    main(win)
-                    root.withdraw()
+                # commit the command
+                conn.commit()
+                # close the connection
+                conn.close()
 
-                submitButton = Button(root, text='Submit', command=lambda: submit(e.get()))
-                reStartButton = Button(root, text='Restart', command=lambda: restart())
-                quitButton = Button(root, text="Quit", command=root.destroy)
+                if record_new_player_score == True:
+                    root.title("Submit highscore")
+                    root.iconbitmap('icon.ico')
 
-                submitButton.grid(row=1, column=0)
-                reStartButton.grid(row=1, column=1)
-                quitButton.grid(row=1, column=2)
+                    e = Entry(root, width=50)
+                    e.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
 
-                root.mainloop()
-                # run = False
+                    def submit(name):
+                        print(f'Updateing score for: {name}')
+                        update_score(score, name)
+                        main_menu(win)
+
+                    def restart():
+                        main(win)
+                        root.withdraw()
+
+                    submitButton = Button(root, text='Submit', command=lambda: submit(e.get()))
+                    reStartButton = Button(root, text='Restart', command=lambda: restart())
+                    quitButton = Button(root, text="Quit", command=root.destroy)
+
+                    submitButton.grid(row=1, column=0)
+                    reStartButton.grid(row=1, column=1)
+                    quitButton.grid(row=1, column=2)
+
+                    root.mainloop()
+                pygame.time.delay(1500)
+                run = False
             elif AI == True:
-                draw_text_middle('You lost', 80, (255,255,255), win)
+                draw_text_middle('The AI lost', 80, (255,255,255), win)
                 pygame.display.update()
 
                 response = messagebox.askyesno("What now?", "You want to restart?")
@@ -762,7 +787,7 @@ def highscore_menu(win):
         c.execute("SELECT * from Player ORDER BY score DESC LIMIT 10")
 
         players = c.fetchall()
-        
+
         distance = 200
         for player in players:
             # print(player.score)
@@ -777,76 +802,6 @@ def highscore_menu(win):
         conn.commit()
         # close the connection
         conn.close()
-
-        # # draw highscore #1
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[0].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 - 200
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #2
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[1].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 - 150
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #3
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[2].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 - 100
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #4
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[3].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 - 50
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #5
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[4].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #6
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[5].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 + 50
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #7
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[6].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 + 100
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #8
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[7].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 + 150
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #9
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[8].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 + 200
-        # win.blit(label, (sx, sy))
-
-        # # draw highscore #10
-        # font = pygame.font.SysFont('comicsans', 30)
-        # label = font.render(scores[9].strip(), 1, (255,255,255))
-        # sx = s_width/2 - label.get_width()/2
-        # sy = s_height/2 + 250
-        # win.blit(label, (sx, sy))
 
         # recreate the exit button
         close_button = button.Button(s_width/2 - close_img.get_width()/2, s_height/2 - close_img.get_height()/2 + 320, close_img, 1)
