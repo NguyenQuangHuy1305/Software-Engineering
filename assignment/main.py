@@ -1,3 +1,4 @@
+from turtle import shape
 import pygame
 import random
 import sqlite3
@@ -14,6 +15,27 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import *
 
+from pygame import mixer
+pygame.mixer.init()
+# background sound
+mixer.music.load('sounds\Loonboon.wav')
+
+piece_drop_sound = mixer.Sound('sounds\SFX_PieceSoftDrop.wav')
+piece_move_LR = mixer.Sound('sounds\SFX_PieceMoveLR.wav')
+piece_rotate_fail = mixer.Sound('sounds\SFX_PieceRotateFail.wav')
+piece_rotate_LR = mixer.Sound('sounds\SFX_PieceRotateLR.wav')
+piece_move_LR = mixer.Sound('sounds\SFX_PieceMoveLR.wav')
+piece_touch_LR = mixer.Sound('sounds\SFX_PieceTouchLR.wav')
+piece_touch_down = mixer.Sound('sounds\SFX_PieceTouchDown.wav')
+start_sound = mixer.Sound('sounds\gta-san-andreas-ah-shit-here-we-go-again.wav')
+dead_sound = mixer.Sound('sounds\Mission Failed Well get em next time.wav')
+menu_sound = mixer.Sound('sounds\Graze the Roof.wav')
+
+piece_clear_1 = mixer.Sound('sounds\SFX_SpecialLineClearSingle.wav')
+piece_clear_2 = mixer.Sound('sounds\SFX_SpecialLineClearDouble.wav')
+piece_clear_3 = mixer.Sound('sounds\SFX_SpecialLineClearTriple.wav')
+piece_clear_4 = mixer.Sound('sounds\SFX_SpecialTetris.wav')
+
 root = Tk()
 root.title("Submit highscore")
 # root.withdraw() # to remove the tk root window
@@ -24,8 +46,8 @@ pygame.display.set_icon(pygame_icon)
 
 """
 10 x 20 square grid
-shapes: S, Z, I, O, J, L, T
-represented in order by 0 - 6
+shapes: S, Z, I, O, J, L, T, i
+represented in order by 0 - 7
 """
 
 pygame.font.init()
@@ -168,9 +190,44 @@ T = [['.....',
     '..0..',
     '.....']]
 
-shapes = [S, Z, I, O, J, L, T]
-shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128)]
-# index 0 - 6 represent shape
+i = [['.....',
+    '..0..',
+    '..0..',
+    '..0..',
+    '.....'],
+    ['.....',
+    '.000.',
+    '.....',
+    '.....',
+    '.....']]
+
+C = [['.....',
+    '.....',
+    '..00.',
+    '..0..',
+    '.....'],
+    ['.....',
+    '..0..',
+    '..00.',
+    '.....',
+    '.....'],
+    ['.....',
+    '.....',
+    '.00..',
+    '..0..',
+    '.....'],
+    ['.....',
+    '..0..',
+    '.00..',
+    '.....',
+    '.....']]
+
+# normal_shape = [S, Z, I, O, J, L, T]
+# normal_shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128)]
+
+shapes = [S, Z, I, O, J, L, T, i, C]
+shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128), (0, 255, 180), (0, 0, 180)]
+# index 0 - 8 represent shape
 
 # create the class for tetris pieces
 class Piece(object):
@@ -289,11 +346,14 @@ def check_lost(positions):
             return True
     return False
 
-def get_shape():
+def get_shape(game_mode):
     """
     function to get a random Piece (shape)
     """
-    return Piece(5, 0, random.choice(shapes))
+    if game_mode == 'normal':
+        return Piece(5, 0, random.choice(shapes[0:7]))
+    if game_mode == 'extended':
+        return Piece(5, 0, random.choice(shapes))
 
 
 def draw_text_middle(text, size, color, surface):
@@ -460,8 +520,10 @@ def main(win):
     
     change_piece = False # default is false, will be changed whenever a shape hit a locked_position
     run = True # while  True -> while run so that we can flip this bool var later
-    current_piece = get_shape() # get a random current piece
-    next_piece = get_shape() # get a random next piece
+
+    game_mode = 'normal'
+    current_piece = get_shape(game_mode) # get a random current piece
+    next_piece = get_shape(game_mode) # get a random next piece
     clock = pygame.time.Clock()
     fall_time = 0
     fall_speed = 0.25 # how long it take for a piece to move 1 row down
@@ -471,7 +533,9 @@ def main(win):
     level = 1
 
     AI = False
-
+    mixer.music.play(-1)
+    start_sound.play()
+    menu_sound.stop()
     while run:
         # create the grid based on locked_positions
         grid = create_grid(locked_positions)
@@ -515,15 +579,19 @@ def main(win):
                 # in the event the user press left key -> move piece to the left aka current_piece.x -= 1
                 if event.key == pygame.K_LEFT:
                     current_piece.x -= 1
+                    piece_move_LR.play()
                     # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.x += 1
+                        piece_touch_LR.play()
                 # in the event the user press right key -> move piece to the right aka current_piece.x += 1
                 if event.key == pygame.K_RIGHT:
                     current_piece.x += 1
+                    piece_move_LR.play()
                     # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.x -= 1
+                        piece_touch_LR.play()
                 # in the event the user press down key -> move piece down aka current_piece.y += 1
                 if event.key == pygame.K_DOWN:
                     current_piece.y += 1
@@ -533,6 +601,7 @@ def main(win):
 
                 # in the event the user press space key -> move piece down until it hits (overlaps) an invalid space (in another word: move the piece down continuously as long as it's still in valid space)
                 if event.key == pygame.K_SPACE:
+                    piece_drop_sound.play()
                     while valid_space(current_piece, grid):
                         current_piece.y += 1
                     if not(valid_space(current_piece, grid)):
@@ -541,9 +610,11 @@ def main(win):
                 # in the event the user press up key -> rotate the piece
                 if event.key == pygame.K_UP:
                     current_piece.rotation += 1
+                    piece_rotate_LR.play()
                     # if the new place of the piece is not a valid space, then just undo the previous rotation
                     if not(valid_space(current_piece, grid)):
                         current_piece.rotation -= 1
+                        piece_rotate_fail.play()
                 # in the event the user press P key -> stop time increment
                 if event.key == pygame.K_p:
                     game_paused = not game_paused
@@ -576,7 +647,7 @@ def main(win):
                 p = (pos[0], pos[1])
                 locked_positions[p] = current_piece.color
             current_piece = next_piece # replace the current piece with next piece
-            next_piece = get_shape() # initiate the new piece
+            next_piece = get_shape(game_mode) # initiate the new piece
             change_piece = False # turn the var back to False
 
             # only clear_rows when the previous piece hits the ground (when change_piece)
@@ -584,15 +655,19 @@ def main(win):
             if x == 1:
                 score += 100
                 inc += 1
+                piece_clear_1.play()
             elif x == 2:
                 score += 300
                 inc += 2
+                piece_clear_2.play()
             elif x == 3:
                 score += 600
                 inc += 3
+                piece_clear_3.play()
             elif x == 4:
                 score += 1000
                 inc += 4
+                piece_clear_4.play()
             # inc += clear_rows(grid, locked_positions)
 
         draw_window(win, grid, score, inc, level)
@@ -605,6 +680,8 @@ def main(win):
 
         # in case of losing
         if check_lost(locked_positions):
+            mixer.music.stop()
+            dead_sound.play()
             if AI == False:
                 # by default, we will not update user's score
                 record_new_player_score = False
@@ -674,6 +751,8 @@ def main_menu(win):
     """
     the main menu with some options and information
     """
+    menu_sound.stop()
+    menu_sound.play(-1)
     run = True
     while run:
         win.fill((0,0,0))
@@ -764,11 +843,8 @@ def configure_menu(win):
 
 def highscore_menu(win):
     """
-    the appearance of high score menu, basically open the scores.txt file and write whatever's in there to the screen
+    the appearance of high score menu
     """
-    with open('scores.txt', 'r') as f:
-        scores = f.readlines()
-
     run = True
     while run:
         win.fill((0,0,0))
@@ -789,10 +865,11 @@ def highscore_menu(win):
         players = c.fetchall()
 
         distance = 200
+        ranking = 0
         for player in players:
-            # print(player.score)
+            ranking += 1
             font = pygame.font.SysFont('comicsans', 30)
-            label = font.render(f'{player[0]}: {player[1]}', 1, (255,255,255))
+            label = font.render(f'Rank {ranking}: {player[0]} - {player[1]}', 1, (255,255,255))
             sx = s_width/2 - label.get_width()/2
             sy = s_height/2 - distance
             win.blit(label, (sx, sy))
