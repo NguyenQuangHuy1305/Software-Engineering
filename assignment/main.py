@@ -238,36 +238,6 @@ class Piece(object):
         self.color = shape_colors[shapes.index(shape)]
         self.rotation = 0
 
-# # connect to database
-# conn = sqlite3.connect('highscore.db')
-# # create a cusor
-# c = conn.cursor()
-
-# # c.execute("""CREATE TABLE Player (
-# #         name text,
-# #         score integer
-# #         )""")
-
-# # c.execute("INSERT INTO Player VALUES ('test2', 2000)")
-# # order by score
-# c.execute("SELECT * from Player ORDER BY score DESC LIMIT 10")
-
-# players = c.fetchall()
-
-# for player in players:
-#     print(player[0])
-#     # print(player.score)
-
-# # commit the command
-# conn.commit()
-# # close the connection
-# conn.close()
-
-# class Player(object):
-#     def __init__(self, name, score):
-#         self.name = name
-#         self.score = score
-
 # function to create the grid (given locked position as a dict)
 def create_grid(locked_positions = {}):
     """
@@ -355,7 +325,6 @@ def get_shape(game_mode):
     if game_mode == 'extended':
         return Piece(5, 0, random.choice(shapes))
 
-
 def draw_text_middle(text, size, color, surface):
     """
     simple function to draw text in the middle of the screen
@@ -423,7 +392,6 @@ def draw_next_shape(shape, surface):
     
     surface.blit(label, (sx, sy - 40))
 
-
 def update_score(nscore, name):
     """
     func to update the scores.txt file with the 10 highest scores
@@ -439,18 +407,6 @@ def update_score(nscore, name):
     conn.commit()
     # close the connection
     conn.close()
-
-    # # open the file, append new highscore, sort the list, only take [0:10]
-    # with open('scores.txt', 'r') as f:
-    #     data = f.readlines()
-    #     scores.append(str(nscore) + "\n")
-    #     scores = sorted(scores, key=int, reverse=True)
-    #     scores = scores[0:10]
-
-    # # write the length 10 list back to the file
-    # with open('scores.txt', 'w') as f:
-    #     for score in scores:
-    #         f.write(str(score))
 
 def draw_window(surface, grid, score=0, inc=0, level=1):
     """
