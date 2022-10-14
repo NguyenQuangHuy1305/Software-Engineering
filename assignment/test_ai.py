@@ -13,7 +13,7 @@ counter = 0
 def run_ai(current_piece, grid, locked_positions):
     global counter
     counter += 1
-    if counter < 50:
+    if counter < 30:
         return []
     counter = 0
 
@@ -22,7 +22,6 @@ def run_ai(current_piece, grid, locked_positions):
     sim_current_piece = copy.deepcopy(current_piece)
 
     best_rotation, best_position = best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions)
-    # print(best_position)
 
     if current_piece.rotation != best_rotation:
         e = Event(pygame.KEYDOWN, pygame.K_UP)
@@ -35,24 +34,27 @@ def run_ai(current_piece, grid, locked_positions):
     return [e]
 
 def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
-    best_height = 20
-    best_holes = 20*10
+    # best_height = 20
+    # best_holes = 20*10
     best_position = None
     best_rotation = None
+    best_score = float('-inf')
 
     for rotation in range(len(sim_current_piece.shape)):
         sim_current_piece.rotaion = rotation
         for j in range(0, 10):
             holes, height = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
-            # print(height)
+            score = -3.78*height - 2.31*holes
             # this is where we will set the condition for what is considered "best"
-            # if best_position is None or best_holes > holes or best_holes == holes and best_height < height:
-            if height < best_height:
-                best_height = height
-                best_holes = holes
+            if score > best_score:
+                # best_height = height
+                # best_holes = holes
+                best_score = score
                 best_position = j
                 best_rotation = rotation
 
+    # print(f'holes: {holes}')
+    print(f'height: {height}')
     return best_rotation, best_position
 
 def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
@@ -79,12 +81,10 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
 
         # convert the current piece into a list of locations
         sim_shape_pos = convert_shape_format(sim_current_piece)
-        # # loop through all the pos of the blocks of the shapes, if it's in the play area, change the color accordingly (update the grid)
-        # for i in range(len(shape_pos)):
-        #     x, y = shape_pos[i]
-        #     if y > -1: # we're not above the play area
-        #         sim_grid[y][x] = sim_current_piece.color
 
+        # we need a clone version of the sim_locked_positions dict and calculate shits on it
+        # because if not sim_locked_positions will be called 10 times (for j in range(0, 10)) for simulation, and each time line 92 will save more "simulated pieces" in the dict
+        # this way we will only calculate the height and holes for each iteration of j
         clone = copy.deepcopy(sim_locked_positions)
 
         # update sim_locked_positions, sim_locked_positions is a dict like this: {(1,2), (255,255,255)}, whereas the key is the location, value is the color
@@ -92,18 +92,26 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
             p = (pos[0], pos[1])
             clone[p] = sim_current_piece.color
 
-
     height = 0
     holes = 0
+
     for i in range(len(sim_grid)-1, -1, -1): # loop through all rows, from 19 to 0 (bottom up)
         for j in range(len(sim_grid[i])): # loop through all column of that row 0-9, len(grid[i]) == 10
+            is_hole = False
+
+            # calculate the total height point:
             if (j, i) in clone:
-                height = len(sim_grid) - i
+                height += len(sim_grid) - i
                 # print(f'height: {height}')
-            if (j, i) not in clone and (j, i-1) in clone:
+
+            # calculate the total number of holes on screen
+            for m in range(1, i + 1):
+                if (j, i) not in clone and (j, i-m) in clone:
+                    is_hole = True
+            if is_hole == True:
                 holes += 1
-                # print(f'holes: {holes}')
-    # print(height)
+
+    # print(f'holes: {holes}')
     return holes, height
 
 def convert_shape_format(shape):

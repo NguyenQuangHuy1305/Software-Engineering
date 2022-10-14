@@ -1,2 +1,2 @@
-for i in range(20-1, -1, -1):
+for i in range(1,18):
     print(i)
