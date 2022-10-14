@@ -443,8 +443,8 @@ def main(win):
                 current_piece.y -= 1
                 change_piece = True
 
-        for event in list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions):
-        # for event in pygame.event.get():
+        # for event in list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions):
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 pygame.display.quit()

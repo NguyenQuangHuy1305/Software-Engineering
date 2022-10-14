@@ -13,7 +13,7 @@ counter = 0
 def run_ai(current_piece, grid, locked_positions):
     global counter
     counter += 1
-    if counter < 20:
+    if counter < 40:
         return []
     counter = 0
 
@@ -41,7 +41,8 @@ def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
     best_score = float('-inf')
 
     for rotation in range(len(sim_current_piece.shape)):
-        sim_current_piece.rotaion = rotation
+        # print(rotation)
+        sim_current_piece.rotation = rotation
         for j in range(0, 10):
             holes, height_score = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
             # print(f'height_score: {height_score}')
@@ -85,6 +86,7 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
 
         # convert the current piece into a list of locations
         sim_shape_pos = convert_shape_format(sim_current_piece)
+        # print(sim_current_piece.rotation)
 
         # we need a clone version of the sim_locked_positions dict and calculate shits on it
         # because if not sim_locked_positions will be called 10 times (for j in range(0, 10)) for simulation, and each time line 92 will save more "simulated pieces" in the dict
@@ -96,7 +98,7 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
             p = (pos[0], pos[1])
             clone[p] = sim_current_piece.color
 
-        # debugging shits
+        # # debugging shits
         # for i in range(len(sim_grid)):
         #     test3 = ''
         #     for j in range(len(sim_grid[i])):
