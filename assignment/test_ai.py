@@ -13,7 +13,7 @@ counter = 0
 def run_ai(current_piece, grid, locked_positions):
     global counter
     counter += 1
-    if counter < 30:
+    if counter < 20:
         return []
     counter = 0
 
@@ -43,9 +43,9 @@ def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
     for rotation in range(len(sim_current_piece.shape)):
         sim_current_piece.rotaion = rotation
         for j in range(0, 10):
-            holes, height = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
-            score = -3.78*height - 2.31*holes
-            # this is where we will set the condition for what is considered "best"
+            holes, height_score = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
+            # print(f'height_score: {height_score}')
+            score = -3.78*height_score - 2.31*holes
             if score > best_score:
                 # best_height = height
                 # best_holes = holes
@@ -54,7 +54,8 @@ def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
                 best_rotation = rotation
 
     # print(f'holes: {holes}')
-    print(f'height: {height}')
+    # print(f'height_score: {height_score}')
+    # print(f'height_score: {height_score}')
     return best_rotation, best_position
 
 def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
@@ -71,6 +72,9 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
     #         sim_current_piece.x -= 1
     
     sim_current_piece.x = j
+    if not(valid_space(sim_current_piece, sim_grid)):
+        height_score = float('inf') # if the Piece is outside of playarea -> return immediately with very very high height_score
+        return 0, height_score
 
     # while still in valid_space, increase y value of a piece by 1
     while valid_space(sim_current_piece, sim_grid):
@@ -92,7 +96,18 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
             p = (pos[0], pos[1])
             clone[p] = sim_current_piece.color
 
-    height = 0
+        # debugging shits
+        # for i in range(len(sim_grid)):
+        #     test3 = ''
+        #     for j in range(len(sim_grid[i])):
+        #         if (j, i) in clone:
+        #             test3 += 'x'
+        #         else:
+        #             test3 += '.'
+        #     print(test3)
+        # print('')
+
+    height_score = 0
     holes = 0
 
     for i in range(len(sim_grid)-1, -1, -1): # loop through all rows, from 19 to 0 (bottom up)
@@ -101,8 +116,7 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
 
             # calculate the total height point:
             if (j, i) in clone:
-                height += len(sim_grid) - i
-                # print(f'height: {height}')
+                height_score += (len(sim_grid) - i)
 
             # calculate the total number of holes on screen
             for m in range(1, i + 1):
@@ -112,7 +126,7 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
                 holes += 1
 
     # print(f'holes: {holes}')
-    return holes, height
+    return holes, height_score
 
 def convert_shape_format(shape):
     """
@@ -123,9 +137,15 @@ def convert_shape_format(shape):
     # shape.rotation % len(shape.shape) is the index (example: 1, 2, 3, or 4, depend on the current rotation "count", 0%4=0, 1%4=1, 2%4=2, 3%4=3, 4%4=0,...)
     format = shape.shape[shape.rotation % len(shape.shape)]
 
+# O = [['.....',
+#       '.....',
+#       '.00..',
+#       '.00..',
+#       '.....']]
+
     # loop through the list called format which we got above
     for i, line in enumerate(format):
-        row = list(line)
+        row = list(line) # row = ['.', '.', '.', '.']
         # turn line into a list called row, then loop through it
         for j, column in enumerate(row):
             if column == '0':
