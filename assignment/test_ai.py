@@ -13,7 +13,7 @@ counter = 0
 def run_ai(current_piece, grid, locked_positions):
     global counter
     counter += 1
-    if counter < 40:
+    if counter < 20:
         return []
     counter = 0
 
@@ -127,7 +127,6 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
             if is_hole == True:
                 holes += 1
 
-    # print(f'holes: {holes}')
     return holes, height_score
 
 def convert_shape_format(shape):

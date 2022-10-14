@@ -285,19 +285,19 @@ def clear_rows(grid, locked):
     function to clear row from the bottom up, require a grid and locked_positions as parameter
     """
     inc = 0 # to count how many row do we need to move "the above rows" down
-    for i in range(len(grid)-1, -1,  -1):
+    for i in range(len(grid)-1,-1,-1):
         row = grid[i]
-        if (0,0,0) not in row:
+        if (0, 0, 0) not in row:
             inc += 1
+            # add positions to remove from locked
             ind = i
             for j in range(len(row)):
                 try:
-                    del locked[(j,i)]
+                    del locked[(j, i)]
                 except:
                     continue
-
     if inc > 0:
-        for key in sorted(list(locked), key = lambda x: x[1])[::-1]:
+        for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
             x, y = key
             if y < ind:
                 newKey = (x, y + inc)
@@ -443,8 +443,8 @@ def main(win):
                 current_piece.y -= 1
                 change_piece = True
 
-        # for event in list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions):
-        for event in pygame.event.get():
+        for event in list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions):
+        # for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 pygame.display.quit()
@@ -520,15 +520,20 @@ def main(win):
             print('ccccccccccccccccccccccccccccccccccccccccccccccccccccc')
 
             # only clear_rows when the previous piece hits the ground (when change_piece)
-            if clear_rows(grid, locked_positions) == 1:
+            clear_rows(grid, locked_positions) == x
+            if x == 1:
                 score += 100
-            elif clear_rows(grid, locked_positions) == 2:
+                inc += 1
+            elif x == 1:
                 score += 300
-            elif clear_rows(grid, locked_positions) == 3:
+                inc += 2
+            elif x == 1:
                 score += 600
-            elif clear_rows(grid, locked_positions) == 4:
+                inc += 3
+            elif x == 1:
                 score += 1000
-            inc += clear_rows(grid, locked_positions)
+                inc += 4
+            # inc += clear_rows(grid, locked_positions)
 
         draw_window(win, grid, score, inc, level)
         draw_next_shape(next_piece, win)
