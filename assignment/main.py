@@ -491,7 +491,7 @@ def main(win):
                     game_paused = not game_paused
                     draw_text_middle("Paused", 120, (255,255,255), win)
                     pygame.display.update()
-                    response = messagebox.askyesno("Confirmation", "U sure you wanna quit?")
+                    response = messagebox.askyesno("Confirmation", "U sure xyou wanna quit?")
                     if response == True:
                         run = False
                         pygame.display.quit()
@@ -500,7 +500,7 @@ def main(win):
 
         # convert the object "current_piece" from Piece to a list of positions
         shape_pos = convert_shape_format(current_piece)
-        print(shape_pos)
+        # print(shape_pos)
 
         # loop through all the pos of the blocks of the shapes, if it's in the play area, change the color accordingly
         for i in range(len(shape_pos)):
@@ -517,6 +517,7 @@ def main(win):
             current_piece = next_piece # replace the current piece with next piece
             next_piece = get_shape() # initiate the new piece
             change_piece = False # turn the var back to False
+            print('ccccccccccccccccccccccccccccccccccccccccccccccccccccc')
 
             # only clear_rows when the previous piece hits the ground (when change_piece)
             if clear_rows(grid, locked_positions) == 1:

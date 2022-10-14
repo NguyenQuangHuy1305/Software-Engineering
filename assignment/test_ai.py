@@ -1,4 +1,5 @@
 import pygame
+import copy
 
 class Event():
     type = None
@@ -12,15 +13,16 @@ counter = 0
 def run_ai(current_piece, grid, locked_positions):
     global counter
     counter += 1
-    if counter < 300:
+    if counter < 50:
         return []
     counter = 0
 
-    filled = locked_positions
-    sim_grid = grid
-    sim_current_piece = current_piece
+    sim_locked_positions = copy.deepcopy(locked_positions)
+    sim_grid = copy.deepcopy(grid)
+    sim_current_piece = copy.deepcopy(current_piece)
 
-    best_rotation, best_position = best_rotation_position(sim_current_piece, sim_grid, filled)
+    best_rotation, best_position = best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions)
+    # print(best_position)
 
     if current_piece.rotation != best_rotation:
         e = Event(pygame.KEYDOWN, pygame.K_UP)
@@ -32,18 +34,20 @@ def run_ai(current_piece, grid, locked_positions):
         e = Event(pygame.KEYDOWN, pygame.K_SPACE)
     return [e]
 
-def best_rotation_position(sim_current_piece, sim_grid, filled):
-    best_height = 0
+def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
+    best_height = 20
     best_holes = 20*10
     best_position = None
     best_rotation = None
 
     for rotation in range(len(sim_current_piece.shape)):
-        for j in range(3,7):
-            holes, height = simulate(sim_current_piece, j, sim_grid, filled)
+        sim_current_piece.rotaion = rotation
+        for j in range(0, 10):
+            holes, height = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
+            # print(height)
             # this is where we will set the condition for what is considered "best"
             # if best_position is None or best_holes > holes or best_holes == holes and best_height < height:
-            if height > best_height:
+            if height < best_height:
                 best_height = height
                 best_holes = holes
                 best_position = j
@@ -51,18 +55,20 @@ def best_rotation_position(sim_current_piece, sim_grid, filled):
 
     return best_rotation, best_position
 
-def simulate(sim_current_piece, j, sim_grid, filled):
+def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
     '''
     function to simulate a piece at location x,y, and return the holes and height of the current "tower"
     x: parameter passed in to simulate dropping the piece at which column (horizontally 0-9)
     '''
 
-    # move sim_current_piece to the passed-in x position
-    while sim_current_piece.x != j:
-        if sim_current_piece.x < j:
-            sim_current_piece.x += 1
-        elif sim_current_piece.x > j:
-            sim_current_piece.x -= 1
+    # # move sim_current_piece to the passed-in x position
+    # while sim_current_piece.x != j:
+    #     if sim_current_piece.x < j:
+    #         sim_current_piece.x += 1
+    #     elif sim_current_piece.x > j:
+    #         sim_current_piece.x -= 1
+    
+    sim_current_piece.x = j
 
     # while still in valid_space, increase y value of a piece by 1
     while valid_space(sim_current_piece, sim_grid):
@@ -73,29 +79,31 @@ def simulate(sim_current_piece, j, sim_grid, filled):
 
         # convert the current piece into a list of locations
         sim_shape_pos = convert_shape_format(sim_current_piece)
-
         # # loop through all the pos of the blocks of the shapes, if it's in the play area, change the color accordingly (update the grid)
         # for i in range(len(shape_pos)):
         #     x, y = shape_pos[i]
         #     if y > -1: # we're not above the play area
         #         sim_grid[y][x] = sim_current_piece.color
 
-        # update filled, filled is a dict like this: {(1,2), (255,255,255)}, whereas the key is the location, value is the color
+        clone = copy.deepcopy(sim_locked_positions)
+
+        # update sim_locked_positions, sim_locked_positions is a dict like this: {(1,2), (255,255,255)}, whereas the key is the location, value is the color
         for pos in sim_shape_pos:
             p = (pos[0], pos[1])
-            filled[p] = sim_current_piece.color
+            clone[p] = sim_current_piece.color
 
-    height = len(sim_grid) # =20
+
+    height = 0
     holes = 0
     for i in range(len(sim_grid)-1, -1, -1): # loop through all rows, from 19 to 0 (bottom up)
         for j in range(len(sim_grid[i])): # loop through all column of that row 0-9, len(grid[i]) == 10
-            if (j, i) in filled:
+            if (j, i) in clone:
                 height = len(sim_grid) - i
-                # print(height)
-            if (j, i) not in filled and (j, i-1) in filled:
+                # print(f'height: {height}')
+            if (j, i) not in clone and (j, i-1) in clone:
                 holes += 1
-                # print(holes)
-
+                # print(f'holes: {holes}')
+    # print(height)
     return holes, height
 
 def convert_shape_format(shape):
