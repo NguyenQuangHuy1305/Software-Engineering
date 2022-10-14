@@ -1,6 +1,9 @@
 import pygame
 import random
 
+# import test_ai.py
+import test_ai
+
 # import button.py
 import button
 
@@ -165,7 +168,7 @@ class Piece(object):
     def __init__(self, x, y, shape):
         self.x = x
         self.y = y
-        self.shape = shape # shape here is a list of lists, for example: list of lists named "O" in line 90
+        self.shape = shape # shape here is a list of lists, for example: list of lists named "O" in line 93
         self.color = shape_colors[shapes.index(shape)]
         self.rotation = 0
 
@@ -188,7 +191,7 @@ def create_grid(locked_positions = {}):
 
 def convert_shape_format(shape):
     """
-    function to convert from a passed-in shape object to an actual shape
+    function to convert from a passed-in shape object to a list of positions
     """
     positions = []
     # shape.shape is a list of lists like this: [[],[]], which is either one of these lists: S, Z, I, O, J, L, T
@@ -208,29 +211,31 @@ def convert_shape_format(shape):
     for i, pos in enumerate(positions):
         positions[i] = (pos[0] - 2, pos[1] - 4)
 
-    # return a list of positions, positions of all the blocks that create a shape
+    # return a list of positions, which are all the blocks that create the shape
     return positions
 
 def valid_space(shape, grid):
     """
     function to check the grid if we're moving the shape into an accepted pos
+    TRUE == the shape is NOT in valid spaces
+    FALSE == the shape is still in valid spaces
     """
     # loop through all the possible positions, only add in accepted_pos if the colour is black (0,0,0)
     # accepted_pos is a list of sublists: [ [(1,1)], [(2,2)] ]
     accepted_pos = [[(j,i) for j in range(10) if grid[i][j] == (0,0,0)] for i in range(20)]
-    # this line convert the list of sublists into a list of tuples: [ (1,1), (2,2) ]
+    # this line convert the above list of sublists into a list of tuples: [ (1,1), (2,2) ]
     accepted_pos = [j for sub in accepted_pos for j in sub]
 
-    # convert the passed-in shape into the same format as accepted_pos for comparison [ (1,1), (2,2) ], this is a list of blocks that create the shape
+    # convert the passed-in shape into the same format as accepted_pos for comparison [ (1,1), (2,2) ], formatted is now a list of blocks that are part of the shape
     formatted = convert_shape_format(shape)
 
     # loop through all the blocks (pos) of the shape (formatted)
     for pos in formatted:
         # if any of the blocks (pos) of the shape is not in accepted_pos
         if pos not in accepted_pos:
-            # if the x value (current horizontal pos) of the 1st block (left most block) of  shape is > -1, aka the shape is in the play area
+            # if the x value (current horizontal pos) of the 1st block (left most block) of the shape is > -1, aka the shape is in the play area
             if pos[1] > -1:
-                # then return false, aka the shape is in valid space
+                # then return false, aka the shape is NOT in valid space
                 return False
     return True
 
@@ -398,7 +403,6 @@ def main(win):
     """
     locked_positions = {} # initiate the locked_position dict
     grid = create_grid(locked_positions) # call create_grid fuction with given (blank) locked_positions dict
-    print(grid)
     game_paused = False # pretty much self-explanatory
     
     change_piece = False # default is false, will be changed whenever a shape hit a locked_position
@@ -430,7 +434,7 @@ def main(win):
             if fall_speed > 0.12: # min speed is going to be 0.12
                 fall_speed -= 0.005 # took 1m40s before hitting fall_speed = 0.12
 
-        # if fall_time (auto increase) > fall speed, the move the piece down 1 row
+        # if fall_time (auto increase) > fall speed, then move the piece down 1 row
         if fall_time/1000 > fall_speed:
             fall_time = 0
             current_piece.y += 1
@@ -439,7 +443,8 @@ def main(win):
                 current_piece.y -= 1
                 change_piece = True
 
-        for event in pygame.event.get():
+        for event in list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions):
+        # for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 pygame.display.quit()
@@ -464,6 +469,14 @@ def main(win):
                     # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.y -= 1
+
+                # in the event the user press space key -> move piece down until it hits (overlaps) an invalid space (in another word: move the piece down continuously as long as it's still in valid space)
+                if event.key == pygame.K_SPACE:
+                    while valid_space(current_piece, grid):
+                        current_piece.y += 1
+                    if not(valid_space(current_piece, grid)):
+                        current_piece.y -= 1
+
                 # in the event the user press up key -> rotate the piece
                 if event.key == pygame.K_UP:
                     current_piece.rotation += 1
@@ -485,13 +498,15 @@ def main(win):
                     if response == False:
                         game_paused = not game_paused
 
+        # convert the object "current_piece" from Piece to a list of positions
         shape_pos = convert_shape_format(current_piece)
+        print(shape_pos)
 
         # loop through all the pos of the blocks of the shapes, if it's in the play area, change the color accordingly
         for i in range(len(shape_pos)):
             x, y = shape_pos[i]
             if y > -1: # we're not above the play area
-                grid[y][x] = current_piece.color
+                grid[y][x] = current_piece.color # update the grid with correct color
 
         # in the event change_piece was changed to true:
         if change_piece:
