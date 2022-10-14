@@ -1,5 +1,6 @@
 import pygame
 import random
+import sqlite3
 
 # import test_ai.py
 import test_ai
@@ -7,11 +8,19 @@ import test_ai
 # import button.py
 import button
 
+import tkinter as tk
+
 # import tkinter to display popup dialog box
 from tkinter import messagebox
-import tkinter as tk
-root = tk.Tk()
-root.withdraw() # to remove the tk root window
+from tkinter import *
+
+root = Tk()
+root.title("Submit highscore")
+# root.withdraw() # to remove the tk root window
+
+# setting icons
+pygame_icon = pygame.image.load('icon.png')
+pygame.display.set_icon(pygame_icon)
 
 """
 10 x 20 square grid
@@ -172,6 +181,36 @@ class Piece(object):
         self.color = shape_colors[shapes.index(shape)]
         self.rotation = 0
 
+# # connect to database
+# conn = sqlite3.connect('highscore.db')
+# # create a cusor
+# c = conn.cursor()
+
+# # c.execute("""CREATE TABLE Player (
+# #         name text,
+# #         score integer
+# #         )""")
+
+# # c.execute("INSERT INTO Player VALUES ('test2', 2000)")
+# # order by score
+# c.execute("SELECT * from Player ORDER BY score DESC LIMIT 10")
+
+# players = c.fetchall()
+
+# for player in players:
+#     print(player[0])
+#     # print(player.score)
+
+# # commit the command
+# conn.commit()
+# # close the connection
+# conn.close()
+
+# class Player(object):
+#     def __init__(self, name, score):
+#         self.name = name
+#         self.score = score
+
 # function to create the grid (given locked position as a dict)
 def create_grid(locked_positions = {}):
     """
@@ -325,19 +364,33 @@ def draw_next_shape(shape, surface):
     surface.blit(label, (sx, sy - 40))
 
 
-def update_score(nscore):
+def update_score(nscore, name):
     """
     func to update the scores.txt file with the 10 highest scores
     """
-    with open('scores.txt', 'r') as f:
-        scores = f.readlines()
-        scores.append(str(nscore) + "\n")
-        scores = sorted(scores, key=int, reverse=True)
-        scores = scores[0:10]
+    # connect to database
+    conn = sqlite3.connect('highscore.db')
+    # create a cusor
+    c = conn.cursor()
 
-    with open('scores.txt', 'w') as f:
-        for score in scores:
-            f.write(str(score))
+    c.execute("INSERT INTO Player (name, score) VALUES (?, ?)", (name, nscore))
+
+    # commit the command
+    conn.commit()
+    # close the connection
+    conn.close()
+
+    # # open the file, append new highscore, sort the list, only take [0:10]
+    # with open('scores.txt', 'r') as f:
+    #     data = f.readlines()
+    #     scores.append(str(nscore) + "\n")
+    #     scores = sorted(scores, key=int, reverse=True)
+    #     scores = scores[0:10]
+
+    # # write the length 10 list back to the file
+    # with open('scores.txt', 'w') as f:
+    #     for score in scores:
+    #         f.write(str(score))
 
 def draw_window(surface, grid, score=0, inc=0, level=1):
     """
@@ -417,6 +470,8 @@ def main(win):
     inc = 0
     level = 1
 
+    AI = True
+
     while run:
         # create the grid based on locked_positions
         grid = create_grid(locked_positions)
@@ -443,7 +498,13 @@ def main(win):
                 current_piece.y -= 1
                 change_piece = True
 
-        for event in list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions):
+        events = []
+        if AI == True:
+            events = list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions)
+        if AI == False:
+            events = pygame.event.get()
+
+        for event in events:
         # for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -491,7 +552,7 @@ def main(win):
                     game_paused = not game_paused
                     draw_text_middle("Paused", 120, (255,255,255), win)
                     pygame.display.update()
-                    response = messagebox.askyesno("Confirmation", "U sure xyou wanna quit?")
+                    response = messagebox.askyesno("Confirmation", "Do you want to finish the game?")
                     if response == True:
                         run = False
                         pygame.display.quit()
@@ -517,20 +578,19 @@ def main(win):
             current_piece = next_piece # replace the current piece with next piece
             next_piece = get_shape() # initiate the new piece
             change_piece = False # turn the var back to False
-            print('ccccccccccccccccccccccccccccccccccccccccccccccccccccc')
 
             # only clear_rows when the previous piece hits the ground (when change_piece)
-            clear_rows(grid, locked_positions) == x
+            x = clear_rows(grid, locked_positions)
             if x == 1:
                 score += 100
                 inc += 1
-            elif x == 1:
+            elif x == 2:
                 score += 300
                 inc += 2
-            elif x == 1:
+            elif x == 3:
                 score += 600
                 inc += 3
-            elif x == 1:
+            elif x == 4:
                 score += 1000
                 inc += 4
             # inc += clear_rows(grid, locked_positions)
@@ -543,32 +603,47 @@ def main(win):
             draw_text_middle("Paused", 120, (255,255,255), win)
             pygame.display.update()
 
+        # in case of losing
         if check_lost(locked_positions):
-            draw_text_middle('You lost', 80, (255,255,255), win)
-            pygame.display.update()
-            pygame.time.delay(1500)
-            update_score(score)
-            run = False
+            if AI == False:
+                draw_text_middle('You lost', 80, (255,255,255), win)
+                pygame.display.update()
 
-# def yes_or_no(win):
-#     run = True
-#     while run:
-#         win.fill((0,0,0))
-#         draw_text_middle("You sure you want to quit?", 60, (255,255,255), win)
+                root.title("Submit highscore")
+                root.iconbitmap('icon.ico')
 
-#         if yes_button.draw(win):
-#             run = False
-#             pygame.display.quit()
-#         if no_button.draw(win):
-#             main(win)
+                e = Entry(root, width=50)
+                e.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
 
-#         # event handler
-#         for event in pygame.event.get():
-#             if event.type == pygame.QUIT:
-#                 run = False
-#                 pygame.display.quit()
-        
-#         pygame.display.update()
+                def submit(name):
+                    print(f'Updateing score for: {name}')
+                    update_score(score, name)
+                    main_menu(win)
+
+                def restart():
+                    main(win)
+                    root.withdraw()
+
+                submitButton = Button(root, text='Submit', command=lambda: submit(e.get()))
+                reStartButton = Button(root, text='Restart', command=lambda: restart())
+                quitButton = Button(root, text="Quit", command=root.destroy)
+
+                submitButton.grid(row=1, column=0)
+                reStartButton.grid(row=1, column=1)
+                quitButton.grid(row=1, column=2)
+
+                root.mainloop()
+                # run = False
+            elif AI == True:
+                draw_text_middle('You lost', 80, (255,255,255), win)
+                pygame.display.update()
+
+                response = messagebox.askyesno("What now?", "You want to restart?")
+                update_score(score, 'AI')
+                if response == True:
+                    main(win)
+                if response == False:
+                    main_menu(win)
 
 def main_menu(win):
     """
@@ -678,75 +753,100 @@ def highscore_menu(win):
 
         win.blit(label, (top_left_x + play_width/2 - (label.get_width()/2), 10))
 
-        # draw highscore #1
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[0].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 - 200
-        win.blit(label, (sx, sy))
+        # connect to database
+        conn = sqlite3.connect('highscore.db')
+        # create a cusor
+        c = conn.cursor()
 
-        # draw highscore #2
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[1].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 - 150
-        win.blit(label, (sx, sy))
+        # order by score
+        c.execute("SELECT * from Player ORDER BY score DESC LIMIT 10")
 
-        # draw highscore #3
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[2].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 - 100
-        win.blit(label, (sx, sy))
+        players = c.fetchall()
+        
+        distance = 200
+        for player in players:
+            # print(player.score)
+            font = pygame.font.SysFont('comicsans', 30)
+            label = font.render(f'{player[0]}: {player[1]}', 1, (255,255,255))
+            sx = s_width/2 - label.get_width()/2
+            sy = s_height/2 - distance
+            win.blit(label, (sx, sy))
+            distance -= 50
 
-        # draw highscore #4
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[3].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 - 50
-        win.blit(label, (sx, sy))
+        # commit the command
+        conn.commit()
+        # close the connection
+        conn.close()
 
-        # draw highscore #5
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[4].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2
-        win.blit(label, (sx, sy))
+        # # draw highscore #1
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[0].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 - 200
+        # win.blit(label, (sx, sy))
 
-        # draw highscore #6
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[5].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 + 50
-        win.blit(label, (sx, sy))
+        # # draw highscore #2
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[1].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 - 150
+        # win.blit(label, (sx, sy))
 
-        # draw highscore #7
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[6].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 + 100
-        win.blit(label, (sx, sy))
+        # # draw highscore #3
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[2].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 - 100
+        # win.blit(label, (sx, sy))
 
-        # draw highscore #8
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[7].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 + 150
-        win.blit(label, (sx, sy))
+        # # draw highscore #4
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[3].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 - 50
+        # win.blit(label, (sx, sy))
 
-        # draw highscore #9
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[8].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 + 200
-        win.blit(label, (sx, sy))
+        # # draw highscore #5
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[4].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2
+        # win.blit(label, (sx, sy))
 
-        # draw highscore #10
-        font = pygame.font.SysFont('comicsans', 30)
-        label = font.render(scores[9].strip(), 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
-        sy = s_height/2 + 250
-        win.blit(label, (sx, sy))
+        # # draw highscore #6
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[5].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 + 50
+        # win.blit(label, (sx, sy))
+
+        # # draw highscore #7
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[6].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 + 100
+        # win.blit(label, (sx, sy))
+
+        # # draw highscore #8
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[7].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 + 150
+        # win.blit(label, (sx, sy))
+
+        # # draw highscore #9
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[8].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 + 200
+        # win.blit(label, (sx, sy))
+
+        # # draw highscore #10
+        # font = pygame.font.SysFont('comicsans', 30)
+        # label = font.render(scores[9].strip(), 1, (255,255,255))
+        # sx = s_width/2 - label.get_width()/2
+        # sy = s_height/2 + 250
+        # win.blit(label, (sx, sy))
 
         # recreate the exit button
         close_button = button.Button(s_width/2 - close_img.get_width()/2, s_height/2 - close_img.get_height()/2 + 320, close_img, 1)
@@ -761,34 +861,5 @@ def highscore_menu(win):
                 pygame.display.quit()
 
         pygame.display.update()
-
-# def pause_menu(win):
-#     run = True
-#     game_paused = False
-#     while run:
-#         win.fill((0,0,0))
-#         # draw_text_middle("Press anything to start", 60, (255,255,255), win)
-
-#         click = False
-
-#         if game_paused == True:
-#             if resume_button.draw(win):
-#                 game_paused = False
-#             if exit_button.draw(win):
-#                 run = False
-#         else:
-#             pass # run the game like normal
-
-#         # event handler
-#         for event in pygame.event.get():
-#             if event.type == pygame.KEYDOWN:
-#                 if event.key == pygame.K_SPACE:
-#                     game_paused = True
-#             if event.type == pygame.QUIT:
-#                 run = False
-#                 pygame.display.quit()
-#         pygame.display.update()
-
-#     main(win)
 
 main_menu(win)  # start game

@@ -44,9 +44,9 @@ def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
         # print(rotation)
         sim_current_piece.rotation = rotation
         for j in range(0, 10):
-            holes, height_score = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
+            holes, height_score, cleared_line, blockades, edges_touching_the_wall, edges_touching_the_floor, edges_touching_another_piece = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
             # print(f'height_score: {height_score}')
-            score = -3.78*height_score - 2.31*holes
+            score = -3.71*height_score - 4.79*holes - 1.4*blockades + 1.87*cleared_line + 1*edges_touching_another_piece + 1*edges_touching_the_wall + 1*edges_touching_the_floor
             if score > best_score:
                 # best_height = height
                 # best_holes = holes
@@ -75,7 +75,13 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
     sim_current_piece.x = j
     if not(valid_space(sim_current_piece, sim_grid)):
         height_score = float('inf') # if the Piece is outside of playarea -> return immediately with very very high height_score
-        return 0, height_score
+        holes = 0
+        cleared_line = 0
+        blockades = 0
+        edges_touching_the_wall = 0
+        edges_touching_the_floor = 0
+        edges_touching_another_piece = 0
+        return holes, height_score, cleared_line, blockades, edges_touching_the_wall, edges_touching_the_floor, edges_touching_another_piece
 
     # while still in valid_space, increase y value of a piece by 1
     while valid_space(sim_current_piece, sim_grid):
@@ -93,10 +99,27 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
         # this way we will only calculate the height and holes for each iteration of j
         clone = copy.deepcopy(sim_locked_positions)
 
+
+        edges_touching_the_wall = 0
+        edges_touching_the_floor = 0
+        edges_touching_another_piece = 0
         # update sim_locked_positions, sim_locked_positions is a dict like this: {(1,2), (255,255,255)}, whereas the key is the location, value is the color
         for pos in sim_shape_pos:
             p = (pos[0], pos[1])
+
+            # determine if the edge of the current piece touches any other pieces
+            if (pos[0]-1, pos[1]) in clone or (pos[0]+1, pos[1]) in clone or (pos[0], pos[1]-1) in clone:
+                edges_touching_another_piece = 1
+
             clone[p] = sim_current_piece.color
+
+            # determine if the edge of the current piece touches the walls or not (x==0 or x==9)
+            if pos[0] == 0 or pos[0] == 9:
+                edges_touching_the_wall = 1
+            
+            # determine if the edge of the current piece touches the floors or not (y==19)
+            if pos[1] == 19:
+                edges_touching_the_floor = 1
 
         # # debugging shits
         # for i in range(len(sim_grid)):
@@ -111,6 +134,7 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
 
     height_score = 0
     holes = 0
+    blockades = 0
 
     for i in range(len(sim_grid)-1, -1, -1): # loop through all rows, from 19 to 0 (bottom up)
         for j in range(len(sim_grid[i])): # loop through all column of that row 0-9, len(grid[i]) == 10
@@ -127,7 +151,15 @@ def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
             if is_hole == True:
                 holes += 1
 
-    return holes, height_score
+            # calculate number of blockades
+            for m in range(1, i + 1):
+                if (j, i) not in clone and (j, i-m) in clone:
+                    blockades += 1
+
+    # calculate number of cleared lines
+    cleared_line = clear_rows(sim_grid, clone)
+
+    return holes, height_score, cleared_line, blockades, edges_touching_the_wall, edges_touching_the_floor, edges_touching_another_piece
 
 def convert_shape_format(shape):
     """
@@ -182,3 +214,28 @@ def valid_space(shape, grid):
                 # then return false, aka the shape is in valid space
                 return False
     return True
+
+def clear_rows(grid, locked):
+    """
+    function to clear row from the bottom up, require a grid and locked_positions as parameter
+    """
+    inc = 0 # to count how many row do we need to move "the above rows" down
+    for i in range(len(grid)-1,-1,-1):
+        row = grid[i]
+        if (0, 0, 0) not in row:
+            inc += 1
+            # add positions to remove from locked
+            ind = i
+            for j in range(len(row)):
+                try:
+                    del locked[(j, i)]
+                except:
+                    continue
+    if inc > 0:
+        for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
+            x, y = key
+            if y < ind:
+                newKey = (x, y + inc)
+                locked[newKey] = locked.pop(key)
+
+    return inc
