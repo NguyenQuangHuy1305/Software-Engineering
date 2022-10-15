@@ -1,3 +1,4 @@
+from tempfile import TemporaryFile
 from turtle import shape
 import pygame
 import random
@@ -53,8 +54,8 @@ represented in order by 0 - 7
 pygame.font.init()
 
 # GLOBALS VARS
-s_width = 1200 # width of game window
-s_height = 700 # height of game window
+s_width = 1280 # width of game window
+s_height = 720 # height of game window
 play_width = 300  # meaning 300 // 10 = 30 width per block
 play_height = 600  # meaning 600 // 20 = 20 height per block
 block_size = 30 # each block has size of 30
@@ -76,6 +77,10 @@ close_img = pygame.image.load('images/close.png').convert_alpha()
 resume_img = pygame.image.load('images/resume.png').convert_alpha()
 yes_img = pygame.image.load('images/yes.png').convert_alpha()
 no_img = pygame.image.load('images/no.png').convert_alpha()
+player_img = pygame.image.load('images/player.png').convert_alpha()
+AI_img = pygame.image.load('images/AI.png').convert_alpha()
+normal_img = pygame.image.load('images/normal.png').convert_alpha()
+extended_img = pygame.image.load('images/extended.png').convert_alpha()
 
 # CREATE BUTTONS
 start_button = button.Button(s_width/2 - start_img.get_width()/2 -4, s_height/2 - start_img.get_height()/2 -50, start_img, 1)
@@ -86,6 +91,10 @@ resume_button = button.Button(s_width/2 - resume_img.get_width()/2, s_height/2 -
 exit_button = button.Button(s_width/2 - exit_img.get_width()/2, s_height/2 - exit_img.get_height()/2 + 100, exit_img, 1)
 yes_button = button.Button(s_width/2 - yes_img.get_width()/2 - 150, s_height/2 - yes_img.get_height()/2, yes_img, 1)
 no_button = button.Button(s_width/2 - no_img.get_width()/2 + 150, s_height/2 - no_img.get_height()/2, no_img, 1)
+player_button = button.Button(s_width/2 - player_img.get_width()/2 + 90, s_height/2 - player_img.get_height()/2 + 27, player_img, 1)
+AI_button = button.Button(s_width/2 - AI_img.get_width()/2 + 90, s_height/2 - AI_img.get_height()/2 + 27, AI_img, 1)
+normal_button = button.Button(s_width/2 - normal_img.get_width()/2 + 90, s_height/2 - normal_img.get_height()/2 + 70, normal_img, 1)
+extended_button = button.Button(s_width/2 - extended_img.get_width()/2 + 110, s_height/2 - extended_img.get_height()/2 + 70, extended_img, 1)
 
 # SHAPE FORMATS
 S = [['.....',
@@ -444,16 +453,22 @@ def draw_window(surface, grid, score=0, inc=0, level=1):
     sy = top_left_y + play_height/2 -100
     surface.blit(label, (sx, sy + 200))
 
-    # current game mode
+    # current game version
     font = pygame.font.SysFont('comicsans', 30)
-    label = font.render('Current game mode: normal', 1, (255,255,255))
+    try:
+        label = font.render(f'Game version: {current_game_version}', 1, (255,255,255))
+    except:
+        label = font.render(f'Game version: normal', 1, (255,255,255))
     sx = top_left_x + play_width +50
     sy = top_left_y + play_height/2 -100
     surface.blit(label, (sx, sy + 240))
 
     #  AI or human
     font = pygame.font.SysFont('comicsans', 30)
-    label = font.render('Player mode: player', 1, (255,255,255))
+    try:
+        label = font.render(f'Game mode: {current_game_mode}', 1, (255,255,255))
+    except:
+        label = font.render(f'Game mode: player', 1, (255,255,255))
     sx = top_left_x + play_width +50
     sy = top_left_y + play_height/2 -100
     surface.blit(label, (sx, sy + 280))
@@ -477,9 +492,16 @@ def main(win):
     change_piece = False # default is false, will be changed whenever a shape hit a locked_position
     run = True # while  True -> while run so that we can flip this bool var later
 
-    game_mode = 'normal'
-    current_piece = get_shape(game_mode) # get a random current piece
-    next_piece = get_shape(game_mode) # get a random next piece
+    try:
+        game_mode = current_game_mode
+        game_version = current_game_version
+    except:
+        game_mode = 'player'
+        game_version = 'normal'
+
+    current_piece = get_shape(game_version) # get a random current piece
+    next_piece = get_shape(game_version) # get a random next piece
+
     clock = pygame.time.Clock()
     fall_time = 0
     fall_speed = 0.25 # how long it take for a piece to move 1 row down
@@ -488,11 +510,16 @@ def main(win):
     inc = 0
     level = 1
 
-    AI = False
     mixer.music.play(-1)
     start_sound.play()
     menu_sound.stop()
     while run:
+
+        if game_paused == True:
+            mixer.music.pause()
+        elif game_paused == False:
+            mixer.music.unpause()
+
         # create the grid based on locked_positions
         grid = create_grid(locked_positions)
         
@@ -519,9 +546,9 @@ def main(win):
                 change_piece = True
 
         events = []
-        if AI == True:
+        if game_mode == 'AI':
             events = list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions)
-        if AI == False:
+        if game_mode == 'player':
             events = pygame.event.get()
 
         for event in events:
@@ -577,12 +604,13 @@ def main(win):
                 # in the event the user press esc key
                 if event.key == pygame.K_ESCAPE:
                     game_paused = not game_paused
+                    mixer.music.pause()
                     draw_text_middle("Paused", 120, (255,255,255), win)
                     pygame.display.update()
                     response = messagebox.askyesno("Confirmation", "Do you want to finish the game?")
                     if response == True:
                         run = False
-                        pygame.display.quit()
+                        menu_sound.play(-1)
                     if response == False:
                         game_paused = not game_paused
 
@@ -603,7 +631,7 @@ def main(win):
                 p = (pos[0], pos[1])
                 locked_positions[p] = current_piece.color
             current_piece = next_piece # replace the current piece with next piece
-            next_piece = get_shape(game_mode) # initiate the new piece
+            next_piece = get_shape(game_version) # initiate the new piece
             change_piece = False # turn the var back to False
 
             # only clear_rows when the previous piece hits the ground (when change_piece)
@@ -638,7 +666,7 @@ def main(win):
         if check_lost(locked_positions):
             mixer.music.stop()
             dead_sound.play()
-            if AI == False:
+            if game_mode == 'player':
                 # by default, we will not update user's score
                 record_new_player_score = False
 
@@ -675,6 +703,7 @@ def main(win):
                     def submit(name):
                         print(f'Updateing score for: {name}')
                         update_score(score, name)
+                        menu_sound.play(-1)
                         main_menu(win)
 
                     def restart():
@@ -690,9 +719,10 @@ def main(win):
                     quitButton.grid(row=1, column=2)
 
                     root.mainloop()
-                pygame.time.delay(1500)
+                pygame.time.delay(3500)
+                menu_sound.play(-1)
                 run = False
-            elif AI == True:
+            elif game_mode == 'AI':
                 draw_text_middle('The AI lost', 80, (255,255,255), win)
                 pygame.display.update()
 
@@ -701,6 +731,7 @@ def main(win):
                 if response == True:
                     main(win)
                 if response == False:
+                    menu_sound.play(-1)
                     main_menu(win)
 
 def main_menu(win):
@@ -710,6 +741,19 @@ def main_menu(win):
     menu_sound.stop()
     menu_sound.play(-1)
     run = True
+
+    try:
+        game_mode = current_game_mode
+    except:
+        game_mode = 'player'
+
+    try:
+        game_version = current_game_version
+    except:
+        game_version = 'normal'
+
+    mixer.music.stop()
+
     while run:
         win.fill((0,0,0))
         draw_text_middle("Tetris", 120, (255,255,255), win)
@@ -717,7 +761,7 @@ def main_menu(win):
         if start_button.draw(win):
             main(win)
         if configure_button.draw(win):
-            configure_menu(win)
+            configure_menu(win, game_mode=game_mode, game_version=game_version)
         if highscore_button.draw(win):
             highscore_menu(win)
         if exit_button.draw(win):
@@ -746,11 +790,17 @@ def main_menu(win):
 
         pygame.display.update()
 
-def configure_menu(win):
+def configure_menu(win, game_mode, game_version):
     """
     The configure menu, for now it's only hard coded string being displayed
     """
     run = True
+
+    global current_game_mode
+    current_game_mode = game_mode
+    global current_game_version
+    current_game_version = game_version
+
     while run:
         win.fill((0,0,0))
         draw_text_middle("Configuration", 100, (255,255,255), win)
@@ -764,24 +814,38 @@ def configure_menu(win):
 
         # draw game level option within configuration page
         font = pygame.font.SysFont('comicsans', 30)
-        label = font.render('Game level: 1, increase after every 5s', 1, (255,255,255))
+        label = font.render('Game level: auto increase every 5s', 1, (255,255,255))
         sx = s_width/2 - label.get_width()/2
         sy = s_height/2 -100
         win.blit(label, (sx, sy + 50))
 
         # draw game mode option within configuration page
         font = pygame.font.SysFont('comicsans', 30)
-        label = font.render('Game mode: normal', 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
+        label = font.render('Game mode:', 1, (255,255,255))
+        sx = s_width/2 - label.get_width()/2 - 50
         sy = s_height/2 -100
         win.blit(label, (sx, sy + 100))
 
-        # draw player mode option within configuration page
+        if game_mode == 'player':
+            if player_button.draw(win):
+                configure_menu(win, game_mode='AI', game_version=current_game_version)
+        elif game_mode == 'AI':
+            if AI_button.draw(win):
+                configure_menu(win, game_mode='player', game_version=current_game_version)
+
+        # draw game version option within configuration page
         font = pygame.font.SysFont('comicsans', 30)
-        label = font.render('Player mode: player', 1, (255,255,255))
-        sx = s_width/2 - label.get_width()/2
+        label = font.render('Game version:', 1, (255,255,255))
+        sx = s_width/2 - label.get_width()/2 - 80
         sy = s_height/2 -100
         win.blit(label, (sx, sy + 150))
+
+        if game_version == 'normal':
+            if normal_button.draw(win):
+                configure_menu(win, game_mode=current_game_mode, game_version='extended')
+        elif game_version == 'extended':
+            if extended_button.draw(win):
+                configure_menu(win, game_mode=current_game_mode, game_version='normal')
 
         # recreate the exit button
         close_button = button.Button(s_width/2 - close_img.get_width()/2, s_height/2 - close_img.get_height()/2 + 150, close_img, 1)

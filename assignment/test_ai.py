@@ -13,7 +13,7 @@ counter = 0
 def run_ai(current_piece, grid, locked_positions):
     global counter
     counter += 1
-    if counter < 20:
+    if counter < 40:
         return []
     counter = 0
 
