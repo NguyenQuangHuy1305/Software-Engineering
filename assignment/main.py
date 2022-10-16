@@ -19,18 +19,17 @@ from tkinter import *
 from pygame import mixer
 pygame.mixer.init()
 # background sound
-mixer.music.load('sounds\Loonboon.wav')
+# mixer.music.load('sounds\Loonboon.wav')
 
-piece_drop_sound = mixer.Sound('sounds\SFX_PieceSoftDrop.wav')
-piece_move_LR = mixer.Sound('sounds\SFX_PieceMoveLR.wav')
-piece_rotate_fail = mixer.Sound('sounds\SFX_PieceRotateFail.wav')
-piece_rotate_LR = mixer.Sound('sounds\SFX_PieceRotateLR.wav')
-piece_move_LR = mixer.Sound('sounds\SFX_PieceMoveLR.wav')
-piece_touch_LR = mixer.Sound('sounds\SFX_PieceTouchLR.wav')
-piece_touch_down = mixer.Sound('sounds\SFX_PieceTouchDown.wav')
-start_sound = mixer.Sound('sounds\gta-san-andreas-ah-shit-here-we-go-again.wav')
-dead_sound = mixer.Sound('sounds\Mission Failed Well get em next time.wav')
-menu_sound = mixer.Sound('sounds\Graze the Roof.wav')
+main_music = pygame.mixer.Sound('sounds\Loonboon.wav')
+piece_drop_sound = pygame.mixer.Sound('sounds\SFX_PieceSoftDrop.wav')
+piece_rotate_fail = pygame.mixer.Sound('sounds\SFX_PieceRotateFail.wav')
+piece_rotate_LR = pygame.mixer.Sound('sounds\SFX_PieceRotateLR.wav')
+piece_touch_LR = pygame.mixer.Sound('sounds\SFX_PieceTouchLR.wav')
+piece_touch_down = pygame.mixer.Sound('sounds\SFX_PieceTouchDown.wav')
+dead_sound = pygame.mixer.Sound('sounds\Mission Failed Well get em next time.wav')
+menu_sound = pygame.mixer.Sound('sounds\Graze the Roof.wav')
+pause_sound = pygame.mixer.Sound('sounds\Za Warudo.wav')
 
 piece_clear_1 = mixer.Sound('sounds\SFX_SpecialLineClearSingle.wav')
 piece_clear_2 = mixer.Sound('sounds\SFX_SpecialLineClearDouble.wav')
@@ -38,11 +37,10 @@ piece_clear_3 = mixer.Sound('sounds\SFX_SpecialLineClearTriple.wav')
 piece_clear_4 = mixer.Sound('sounds\SFX_SpecialTetris.wav')
 
 root = Tk()
-root.title("Submit highscore")
 # root.withdraw() # to remove the tk root window
 
 # setting icons
-pygame_icon = pygame.image.load('icon.png')
+pygame_icon = pygame.image.load('images/icon.png')
 pygame.display.set_icon(pygame_icon)
 
 """
@@ -199,7 +197,7 @@ T = [['.....',
     '..0..',
     '.....']]
 
-i = [['.....',
+small_I = [['.....',
     '..0..',
     '..0..',
     '..0..',
@@ -234,7 +232,7 @@ C = [['.....',
 # normal_shape = [S, Z, I, O, J, L, T]
 # normal_shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128)]
 
-shapes = [S, Z, I, O, J, L, T, i, C]
+shapes = [S, Z, I, O, J, L, T, small_I, C]
 shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128), (0, 255, 180), (0, 0, 180)]
 # index 0 - 8 represent shape
 
@@ -359,10 +357,11 @@ def draw_grid(surface, grid):
 
 def clear_rows(grid, locked):
     """
-    function to clear row from the bottom up, require a grid and locked_positions as parameter
+    function to clear row from the bottom up, require a grid and locked_positions as parameters
     """
     inc = 0 # to count how many row do we need to move "the above rows" down
-    for i in range(len(grid)-1,-1,-1):
+    ind = 0
+    for i in range(len(grid)-1,-1,-1): # i = 19, 18, 17,...,0
         row = grid[i]
         if (0, 0, 0) not in row:
             inc += 1
@@ -373,12 +372,40 @@ def clear_rows(grid, locked):
                     del locked[(j, i)]
                 except:
                     continue
+        # elif (0, 0, 0) in row:
+        #     pass
+
     if inc > 0:
+        # original stuffs
         for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
             x, y = key
             if y < ind:
                 newKey = (x, y + inc)
                 locked[newKey] = locked.pop(key)
+
+        # count = 0
+        # for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
+        #     x, y = key
+        #     if y > ind: # ind = 16
+        #         if inc == 1:
+        #             newKey = (x, y + inc + ind - y)
+        #             locked[newKey] = locked.pop(key)
+        #         elif inc == 2:
+        #             if y - ind == 1:
+        #                 newKey = (x, y + inc + ind - y)
+        #                 locked[newKey] = locked.pop(key)
+        #             if y - ind == 2:
+        #                 newKey = (x, y + inc + ind +1 - y)
+        #                 locked[newKey] = locked.pop(key)
+        #             if y - ind == 3:
+        #                 pass
+        #         elif inc == 3:
+        #                 newKey = (x, y + inc + ind - y)
+        #                 locked[newKey] = locked.pop(key)
+        #     if y < ind:
+        #         newKey = (x, y + inc)
+        #         locked[newKey] = locked.pop(key)
+
 
     return inc
 
@@ -494,9 +521,12 @@ def main(win):
 
     try:
         game_mode = current_game_mode
-        game_version = current_game_version
     except:
         game_mode = 'player'
+
+    try:
+        game_version = current_game_version
+    except:
         game_version = 'normal'
 
     current_piece = get_shape(game_version) # get a random current piece
@@ -510,11 +540,10 @@ def main(win):
     inc = 0
     level = 1
 
-    mixer.music.play(-1)
-    start_sound.play()
-    menu_sound.stop()
-    while run:
+    pygame.mixer.Sound.stop(menu_sound)
+    pygame.mixer.Sound.play(main_music, -1)
 
+    while run:
         if game_paused == True:
             mixer.music.pause()
         elif game_paused == False:
@@ -548,13 +577,14 @@ def main(win):
         events = []
         if game_mode == 'AI':
             events = list(pygame.event.get()) + test_ai.run_ai(current_piece, grid, locked_positions)
-        if game_mode == 'player':
+        elif game_mode == 'player':
             events = pygame.event.get()
 
         for event in events:
         # for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+                pygame.mixer.Sound.stop(main_music)
                 pygame.display.quit()
             
             # in the event the user press a key
@@ -562,19 +592,17 @@ def main(win):
                 # in the event the user press left key -> move piece to the left aka current_piece.x -= 1
                 if event.key == pygame.K_LEFT:
                     current_piece.x -= 1
-                    piece_move_LR.play()
                     # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.x += 1
-                        piece_touch_LR.play()
+                        pygame.mixer.Sound.play(piece_touch_LR)
                 # in the event the user press right key -> move piece to the right aka current_piece.x += 1
                 if event.key == pygame.K_RIGHT:
                     current_piece.x += 1
-                    piece_move_LR.play()
                     # if the new place of the piece is not a valid space, then just undo the previous movement
                     if not(valid_space(current_piece, grid)):
                         current_piece.x -= 1
-                        piece_touch_LR.play()
+                        pygame.mixer.Sound.play(piece_touch_LR)
                 # in the event the user press down key -> move piece down aka current_piece.y += 1
                 if event.key == pygame.K_DOWN:
                     current_piece.y += 1
@@ -584,7 +612,7 @@ def main(win):
 
                 # in the event the user press space key -> move piece down until it hits (overlaps) an invalid space (in another word: move the piece down continuously as long as it's still in valid space)
                 if event.key == pygame.K_SPACE:
-                    piece_drop_sound.play()
+                    pygame.mixer.Sound.play(piece_drop_sound)
                     while valid_space(current_piece, grid):
                         current_piece.y += 1
                     if not(valid_space(current_piece, grid)):
@@ -593,14 +621,16 @@ def main(win):
                 # in the event the user press up key -> rotate the piece
                 if event.key == pygame.K_UP:
                     current_piece.rotation += 1
-                    piece_rotate_LR.play()
+                    pygame.mixer.Sound.play(piece_rotate_LR)
                     # if the new place of the piece is not a valid space, then just undo the previous rotation
                     if not(valid_space(current_piece, grid)):
                         current_piece.rotation -= 1
-                        piece_rotate_fail.play()
+                        pygame.mixer.Sound.play(piece_rotate_fail)
                 # in the event the user press P key -> stop time increment
                 if event.key == pygame.K_p:
                     game_paused = not game_paused
+                    if game_paused == False:
+                        pygame.mixer.Sound.play(pause_sound)
                 # in the event the user press esc key
                 if event.key == pygame.K_ESCAPE:
                     game_paused = not game_paused
@@ -608,9 +638,11 @@ def main(win):
                     draw_text_middle("Paused", 120, (255,255,255), win)
                     pygame.display.update()
                     response = messagebox.askyesno("Confirmation", "Do you want to finish the game?")
+                    root.iconify()
                     if response == True:
                         run = False
-                        menu_sound.play(-1)
+                        pygame.mixer.Sound.play(menu_sound, -1)
+                        pygame.mixer.Sound.stop(main_music)
                     if response == False:
                         game_paused = not game_paused
 
@@ -626,6 +658,18 @@ def main(win):
 
         # in the event change_piece was changed to true:
         if change_piece:
+
+            # debugging shits
+            for i in range(len(grid)):
+                test3 = ''
+                for j in range(len(grid[i])):
+                    if (j, i) in locked_positions:
+                        test3 += 'x'
+                    else:
+                        test3 += '.'
+                print(test3)
+            print('')
+
             # update locked_positions, locked_positions is a dict like this: {(1,2), (255,255,255)}, whereas the key is the location, value is the color
             for pos in shape_pos:
                 p = (pos[0], pos[1])
@@ -636,23 +680,23 @@ def main(win):
 
             # only clear_rows when the previous piece hits the ground (when change_piece)
             x = clear_rows(grid, locked_positions)
+            print(x)
             if x == 1:
                 score += 100
                 inc += 1
-                piece_clear_1.play()
+                pygame.mixer.Sound.play(piece_clear_1)
             elif x == 2:
                 score += 300
                 inc += 2
-                piece_clear_2.play()
+                pygame.mixer.Sound.play(piece_clear_2)
             elif x == 3:
                 score += 600
                 inc += 3
-                piece_clear_3.play()
+                pygame.mixer.Sound.play(piece_clear_3)
             elif x == 4:
                 score += 1000
                 inc += 4
-                piece_clear_4.play()
-            # inc += clear_rows(grid, locked_positions)
+                pygame.mixer.Sound.play(piece_clear_4)
 
         draw_window(win, grid, score, inc, level)
         draw_next_shape(next_piece, win)
@@ -664,8 +708,8 @@ def main(win):
 
         # in case of losing
         if check_lost(locked_positions):
-            mixer.music.stop()
-            dead_sound.play()
+            pygame.mixer.Sound.stop(main_music)
+            pygame.mixer.Sound.play(dead_sound)
             if game_mode == 'player':
                 # by default, we will not update user's score
                 record_new_player_score = False
@@ -682,45 +726,48 @@ def main(win):
                 c.execute("SELECT * from Player ORDER BY score DESC LIMIT 10")
                 players = c.fetchall()
 
-                for player in players:
-                    if player[1] < score:
-                        record_new_player_score = True
-                    else:
-                        record_new_player_score = False
-
                 # commit the command
                 conn.commit()
                 # close the connection
                 conn.close()
 
+                if len(players) < 10:
+                    record_new_player_score = True
+                else:
+                    for player in players:
+                        if player[1] < score:
+                            record_new_player_score = True
+                        else:
+                            record_new_player_score = False
+
                 if record_new_player_score == True:
                     root.title("Submit highscore")
-                    root.iconbitmap('icon.ico')
+                    root.iconbitmap('images\icon.ico')
 
                     e = Entry(root, width=50)
-                    e.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
+                    e.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
                     def submit(name):
                         print(f'Updateing score for: {name}')
                         update_score(score, name)
-                        menu_sound.play(-1)
+                        pygame.mixer.Sound.play(menu_sound, -1)
+                        root.iconify()
                         main_menu(win)
 
                     def restart():
+                        print(f'Restarting game')
+                        root.iconify()
                         main(win)
-                        root.withdraw()
 
                     submitButton = Button(root, text='Submit', command=lambda: submit(e.get()))
                     reStartButton = Button(root, text='Restart', command=lambda: restart())
-                    quitButton = Button(root, text="Quit", command=root.destroy)
 
                     submitButton.grid(row=1, column=0)
                     reStartButton.grid(row=1, column=1)
-                    quitButton.grid(row=1, column=2)
 
                     root.mainloop()
                 pygame.time.delay(3500)
-                menu_sound.play(-1)
+                pygame.mixer.Sound.play(menu_sound, -1)
                 run = False
             elif game_mode == 'AI':
                 draw_text_middle('The AI lost', 80, (255,255,255), win)
@@ -729,17 +776,19 @@ def main(win):
                 response = messagebox.askyesno("What now?", "You want to restart?")
                 update_score(score, 'AI')
                 if response == True:
+                    root.iconify()
                     main(win)
                 if response == False:
-                    menu_sound.play(-1)
+                    pygame.mixer.Sound.play(menu_sound, -1)
+                    root.iconify()
                     main_menu(win)
 
 def main_menu(win):
     """
     the main menu with some options and information
     """
-    menu_sound.stop()
-    menu_sound.play(-1)
+    pygame.mixer.Sound.stop(menu_sound)
+    pygame.mixer.Sound.play(menu_sound, -1)
     run = True
 
     try:
@@ -751,8 +800,6 @@ def main_menu(win):
         game_version = current_game_version
     except:
         game_version = 'normal'
-
-    mixer.music.stop()
 
     while run:
         win.fill((0,0,0))

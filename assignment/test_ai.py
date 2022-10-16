@@ -13,7 +13,7 @@ counter = 0
 def run_ai(current_piece, grid, locked_positions):
     global counter
     counter += 1
-    if counter < 40:
+    if counter < 25:
         return []
     counter = 0
 
@@ -34,8 +34,6 @@ def run_ai(current_piece, grid, locked_positions):
     return [e]
 
 def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
-    # best_height = 20
-    # best_holes = 20*10
     best_position = None
     best_rotation = None
     best_score = float('-inf')
@@ -46,7 +44,7 @@ def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
         for j in range(0, 10):
             holes, height_score, cleared_line, blockades, edges_touching_the_wall, edges_touching_the_floor, edges_touching_another_piece = simulate(sim_current_piece, j, sim_grid, sim_locked_positions)
             # print(f'height_score: {height_score}')
-            score = -3.71*height_score - 4.79*holes - 1.4*blockades + 1.87*cleared_line + 1*edges_touching_another_piece + 1*edges_touching_the_wall + 1*edges_touching_the_floor
+            score = -3.71*height_score - 7*holes - 1.4*blockades + 1.87*cleared_line + 1*edges_touching_another_piece + 1*edges_touching_the_wall + 1*edges_touching_the_floor
             if score > best_score:
                 # best_height = height
                 # best_holes = holes
@@ -54,9 +52,6 @@ def best_rotation_position(sim_current_piece, sim_grid, sim_locked_positions):
                 best_position = j
                 best_rotation = rotation
 
-    # print(f'holes: {holes}')
-    # print(f'height_score: {height_score}')
-    # print(f'height_score: {height_score}')
     return best_rotation, best_position
 
 def simulate(sim_current_piece, j, sim_grid, sim_locked_positions):
